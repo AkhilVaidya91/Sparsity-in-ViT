@@ -1,0 +1,15 @@
+Repository modules
+
+vit_pruning/config.py          Model, training, data, output, and MLflow configuration
+vit_pruning/reproducibility.py Seeds and model-state utilities
+vit_pruning/data.py            GTSRB transforms, splits, and data loaders
+vit_pruning/model.py           Masked Vision Transformer layers and model
+vit_pruning/pruning.py         Wanda scores and unstructured masks
+vit_pruning/evaluation.py      Clean evaluation and inference timing
+vit_pruning/adversarial.py     FGSM, PGD, and adversarial metrics
+vit_pruning/training.py        Optimizer, checkpoints, early stopping, and MLflow training runs
+vit_pruning/results.py         CSV schemas and output helpers
+vit_pruning/experiments.py     Dense run, pruning evaluation, and multi-GPU retraining worker
+vit_pruning/tracking.py        Shared MLflow configuration and logging helpers
+vit_pruning/pipeline.py        End-to-end experiment orchestration
+vit_pruning/__main__.py        Package entry point
