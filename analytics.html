@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ViT Functional Sparsity: Experimental Results</title>
+<style>
+:root {
+  --ink:#172033; --muted:#667085; --line:#e5e7eb; --soft:#f7f8fa; --blue:#2563eb;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:#ffffff; color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.45; }
+main { max-width:1180px; margin:0 auto; padding:42px 34px 70px; }
+header { border-bottom:1px solid var(--line); padding-bottom:24px; margin-bottom:24px; }
+h1 { font-size:28px; line-height:1.15; margin:0 0 7px; letter-spacing:-0.02em; font-weight:720; }
+h2 { font-size:18px; margin:30px 0 12px; letter-spacing:-0.01em; }
+h3 { font-size:14px; margin:0 0 8px; }
+.subtitle { color:var(--muted); font-size:13px; }
+.method { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:18px 0 4px; }
+.method div { border:1px solid var(--line); background:var(--soft); border-radius:10px; padding:12px 13px; }
+.method b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#6b7280; margin-bottom:4px; }
+.method span { font-size:13px; }
+.note { color:var(--muted); font-size:12px; margin:10px 0 0; }
+.findings { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.finding { border-left:3px solid #cbd5e1; padding:11px 13px; background:#fafafa; font-size:13px; }
+.table-wrap { overflow:auto; border:1px solid var(--line); border-radius:10px; }
+table { width:100%; border-collapse:collapse; font-size:12px; min-width:860px; }
+th,td { padding:8px 9px; border-bottom:1px solid #eef0f3; text-align:right; white-space:nowrap; }
+th { background:#f7f8fa; color:#5b6472; font-weight:650; position:sticky; top:0; z-index:1; }
+td:first-child,th:first-child { text-align:left; }
+tr:last-child td { border-bottom:0; }
+.pos { color:#047857; font-weight:650; }
+.neg { color:#b42318; font-weight:650; }
+.neutral { color:#667085; }
+.caption { color:#667085; font-size:11px; margin-top:7px; }
+.charts { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.card { border:1px solid var(--line); border-radius:10px; padding:12px; background:#fff; }
+.card .label { font-size:12px; color:#667085; margin-bottom:5px; }
+svg { width:100%; height:auto; display:block; }
+.small { font-size:12px; color:#667085; }
+details { border:1px solid var(--line); border-radius:10px; padding:0 12px; }
+summary { cursor:pointer; padding:12px 2px; font-size:13px; font-weight:650; }
+.section-head { display:flex; justify-content:space-between; align-items:end; gap:20px; }
+.legend { font-size:11px; color:#667085; }
+@media (max-width:900px) {
+  .method,.findings,.charts { grid-template-columns:1fr; }
+  main { padding:28px 16px 50px; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Vision Transformer Functional Sparsity: Results</h1>
+  <div class="subtitle">GTSRB • 6-block ViT • 128 hidden dimension • 4 attention heads • location-specific unstructured pruning • 20–80%</div>
+  <div class="method">
+    <div><b>Dense baseline</b><span>94.44% test accuracy</span></div>
+    <div><b>Pruning locations</b><span>Self-attention and MLP parameters evaluated separately</span></div>
+    <div><b>Retraining</b><span>Original recorded initialization vs random reinitialization</span></div>
+    <div><b>Robustness</b><span>FGSM and 10-step PGD at ε = 2/255, 4/255, 8/255</span></div>
+  </div>
+  <div class="note">Accuracy deltas are reported in percentage points. Δ Dense = condition − dense accuracy. Δ Retrain = retrained accuracy − corresponding pruning-only accuracy. Δ Init = original-init accuracy − random-init accuracy.</div>
+</header>
+
+<h2>Clean test performance</h2>
+<div class="table-wrap">
+<table>
+<thead><tr>
+<th>Location</th><th>Pruning</th>
+<th>Pruned acc.</th><th>Δ Dense</th>
+<th>Original init. acc.</th><th>Δ Retrain</th><th>Δ Dense</th>
+<th>Random init. acc.</th><th>Δ Retrain</th><th>Δ Dense</th>
+<th>Δ Init</th>
+</tr></thead>
+<tbody>
+    <tr>
+      <td>Attention</td><td>20%</td>
+      <td>94.26</td><td class="neg">-0.18 pp</td>
+      <td>94.87</td><td class="pos">+0.61 pp</td><td class="pos">+0.43 pp</td>
+      <td>93.78</td><td class="neg">-0.48 pp</td><td class="neg">-0.66 pp</td>
+      <td class="pos">+1.08 pp</td>
+    </tr>
+    <tr>
+      <td>Attention</td><td>40%</td>
+      <td>91.88</td><td class="neg">-2.56 pp</td>
+      <td>94.96</td><td class="pos">+3.07 pp</td><td class="pos">+0.51 pp</td>
+      <td>90.86</td><td class="neg">-1.03 pp</td><td class="neg">-3.59 pp</td>
+      <td class="pos">+4.10 pp</td>
+    </tr>
+    <tr>
+      <td>Attention</td><td>60%</td>
+      <td>71.50</td><td class="neg">-22.95 pp</td>
+      <td>95.01</td><td class="pos">+23.52 pp</td><td class="pos">+0.57 pp</td>
+      <td>90.99</td><td class="pos">+19.49 pp</td><td class="neg">-3.45 pp</td>
+      <td class="pos">+4.02 pp</td>
+    </tr>
+    <tr>
+      <td>Attention</td><td>80%</td>
+      <td>0.83</td><td class="neg">-93.61 pp</td>
+      <td>93.38</td><td class="pos">+92.55 pp</td><td class="neg">-1.06 pp</td>
+      <td>83.86</td><td class="pos">+83.03 pp</td><td class="neg">-10.58 pp</td>
+      <td class="pos">+9.52 pp</td>
+    </tr>
+    <tr>
+      <td>Mlp</td><td>20%</td>
+      <td>94.28</td><td class="neg">-0.16 pp</td>
+      <td>94.84</td><td class="pos">+0.55 pp</td><td class="pos">+0.40 pp</td>
+      <td>93.50</td><td class="neg">-0.78 pp</td><td class="neg">-0.94 pp</td>
+      <td class="pos">+1.34 pp</td>
+    </tr>
+    <tr>
+      <td>Mlp</td><td>40%</td>
+      <td>93.66</td><td class="neg">-0.78 pp</td>
+      <td>94.66</td><td class="pos">+1.00 pp</td><td class="pos">+0.21 pp</td>
+      <td>93.14</td><td class="neg">-0.51 pp</td><td class="neg">-1.30 pp</td>
+      <td class="pos">+1.51 pp</td>
+    </tr>
+    <tr>
+      <td>Mlp</td><td>60%</td>
+      <td>76.34</td><td class="neg">-18.10 pp</td>
+      <td>94.13</td><td class="pos">+17.79 pp</td><td class="neg">-0.31 pp</td>
+      <td>91.76</td><td class="pos">+15.42 pp</td><td class="neg">-2.68 pp</td>
+      <td class="pos">+2.38 pp</td>
+    </tr>
+    <tr>
+      <td>Mlp</td><td>80%</td>
+      <td>42.48</td><td class="neg">-51.96 pp</td>
+      <td>89.97</td><td class="pos">+47.49 pp</td><td class="neg">-4.47 pp</td>
+      <td>90.70</td><td class="pos">+48.23 pp</td><td class="neg">-3.74 pp</td>
+      <td class="neg">-0.74 pp</td>
+    </tr></tbody>
+</table>
+</div>
+<div class="caption">Dense baseline: 94.44% accuracy. Positive deltas indicate higher accuracy than the reference condition.</div>
+
+<div class="charts" style="margin-top:14px;">
+  <div class="card"><div class="label">Immediate pruning accuracy (%)</div><svg viewBox="0 0 760 300" role="img" aria-label="Immediate pruning accuracy"><line x1="55" x2="740" y1="255.0" y2="255.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="259.0" text-anchor="end" font-size="11" fill="#6b7280">0</text><line x1="55" x2="740" y1="200.0" y2="200.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="204.0" text-anchor="end" font-size="11" fill="#6b7280">25</text><line x1="55" x2="740" y1="145.0" y2="145.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="149.0" text-anchor="end" font-size="11" fill="#6b7280">50</text><line x1="55" x2="740" y1="90.0" y2="90.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="94.0" text-anchor="end" font-size="11" fill="#6b7280">75</text><line x1="55" x2="740" y1="35.0" y2="35.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="39.0" text-anchor="end" font-size="11" fill="#6b7280">100</text><line x1="55.0" x2="55.0" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="55.0" y="282" text-anchor="middle" font-size="11" fill="#6b7280">20</text><line x1="283.3" x2="283.3" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="283.3" y="282" text-anchor="middle" font-size="11" fill="#6b7280">40</text><line x1="511.7" x2="511.7" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="511.7" y="282" text-anchor="middle" font-size="11" fill="#6b7280">60</text><line x1="740.0" x2="740.0" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="740.0" y="282" text-anchor="middle" font-size="11" fill="#6b7280">80</text><polyline points="55.0,47.2 283.3,47.2 511.7,47.2 740.0,47.2" fill="none" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="47.2" r="3.2" fill="#1f2937"/><circle cx="283.3" cy="47.2" r="3.2" fill="#1f2937"/><circle cx="511.7" cy="47.2" r="3.2" fill="#1f2937"/><circle cx="740.0" cy="47.2" r="3.2" fill="#1f2937"/><polyline points="55.0,47.6 283.3,52.9 511.7,97.7 740.0,253.2" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="47.6" r="3.2" fill="#2563eb"/><circle cx="283.3" cy="52.9" r="3.2" fill="#2563eb"/><circle cx="511.7" cy="97.7" r="3.2" fill="#2563eb"/><circle cx="740.0" cy="253.2" r="3.2" fill="#2563eb"/><polyline points="55.0,47.6 283.3,49.0 511.7,87.0 740.0,161.5" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="47.6" r="3.2" fill="#d97706"/><circle cx="283.3" cy="49.0" r="3.2" fill="#d97706"/><circle cx="511.7" cy="87.0" r="3.2" fill="#d97706"/><circle cx="740.0" cy="161.5" r="3.2" fill="#d97706"/><line x1="55" x2="73" y1="14" y2="14" stroke="#1f2937" stroke-width="3"/><text x="79" y="18" font-size="11" fill="#374151">Dense</text><line x1="205" x2="223" y1="14" y2="14" stroke="#2563eb" stroke-width="3"/><text x="229" y="18" font-size="11" fill="#374151">Attention pruning</text><line x1="355" x2="373" y1="14" y2="14" stroke="#d97706" stroke-width="3"/><text x="379" y="18" font-size="11" fill="#374151">MLP pruning</text></svg></div>
+  <div class="card"><div class="label">Retrained accuracy (%)</div><svg viewBox="0 0 760 300" role="img" aria-label="Retrained model accuracy"><line x1="55" x2="740" y1="255.0" y2="255.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="259.0" text-anchor="end" font-size="11" fill="#6b7280">80</text><line x1="55" x2="740" y1="200.0" y2="200.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="204.0" text-anchor="end" font-size="11" fill="#6b7280">85</text><line x1="55" x2="740" y1="145.0" y2="145.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="149.0" text-anchor="end" font-size="11" fill="#6b7280">90</text><line x1="55" x2="740" y1="90.0" y2="90.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="94.0" text-anchor="end" font-size="11" fill="#6b7280">95</text><line x1="55" x2="740" y1="35.0" y2="35.0" stroke="#e7eaf0" stroke-width="1"/><text x="47" y="39.0" text-anchor="end" font-size="11" fill="#6b7280">100</text><line x1="55.0" x2="55.0" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="55.0" y="282" text-anchor="middle" font-size="11" fill="#6b7280">20</text><line x1="283.3" x2="283.3" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="283.3" y="282" text-anchor="middle" font-size="11" fill="#6b7280">40</text><line x1="511.7" x2="511.7" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="511.7" y="282" text-anchor="middle" font-size="11" fill="#6b7280">60</text><line x1="740.0" x2="740.0" y1="35" y2="255" stroke="#f2f4f7" stroke-width="1"/><text x="740.0" y="282" text-anchor="middle" font-size="11" fill="#6b7280">80</text><polyline points="55.0,91.4 283.3,90.5 511.7,89.9 740.0,107.8" fill="none" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="91.4" r="3.2" fill="#1f2937"/><circle cx="283.3" cy="90.5" r="3.2" fill="#1f2937"/><circle cx="511.7" cy="89.9" r="3.2" fill="#1f2937"/><circle cx="740.0" cy="107.8" r="3.2" fill="#1f2937"/><polyline points="55.0,103.4 283.3,135.6 511.7,134.1 740.0,212.5" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="103.4" r="3.2" fill="#2563eb"/><circle cx="283.3" cy="135.6" r="3.2" fill="#2563eb"/><circle cx="511.7" cy="134.1" r="3.2" fill="#2563eb"/><circle cx="740.0" cy="212.5" r="3.2" fill="#2563eb"/><polyline points="55.0,91.8 283.3,93.8 511.7,99.5 740.0,145.3" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="91.8" r="3.2" fill="#d97706"/><circle cx="283.3" cy="93.8" r="3.2" fill="#d97706"/><circle cx="511.7" cy="99.5" r="3.2" fill="#d97706"/><circle cx="740.0" cy="145.3" r="3.2" fill="#d97706"/><polyline points="55.0,106.5 283.3,110.4 511.7,125.7 740.0,137.2" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="55.0" cy="106.5" r="3.2" fill="#059669"/><circle cx="283.3" cy="110.4" r="3.2" fill="#059669"/><circle cx="511.7" cy="125.7" r="3.2" fill="#059669"/><circle cx="740.0" cy="137.2" r="3.2" fill="#059669"/><line x1="55" x2="73" y1="14" y2="14" stroke="#1f2937" stroke-width="3"/><text x="79" y="18" font-size="11" fill="#374151">Attention, orig.</text><line x1="205" x2="223" y1="14" y2="14" stroke="#2563eb" stroke-width="3"/><text x="229" y="18" font-size="11" fill="#374151">Attention, random</text><line x1="355" x2="373" y1="14" y2="14" stroke="#d97706" stroke-width="3"/><text x="379" y="18" font-size="11" fill="#374151">MLP, orig.</text><line x1="505" x2="523" y1="14" y2="14" stroke="#059669" stroke-width="3"/><text x="529" y="18" font-size="11" fill="#374151">MLP, random</text></svg></div>
+</div>
+
+<h2>Attention vs MLP at matched pruning levels</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Pruning</th><th>Condition</th><th>Attention acc.</th><th>MLP acc.</th><th>MLP − Attention</th></tr></thead>
+<tbody><tr><td>20%</td><td>Pruning only</td><td>94.26</td><td>94.28</td><td class="neutral">+0.02 pp</td></tr><tr><td>20%</td><td>Original init</td><td>94.87</td><td>94.84</td><td class="neutral">-0.03 pp</td></tr><tr><td>20%</td><td>Random reinit</td><td>93.78</td><td>93.50</td><td class="neg">-0.29 pp</td></tr><tr><td>40%</td><td>Pruning only</td><td>91.88</td><td>93.66</td><td class="pos">+1.77 pp</td></tr><tr><td>40%</td><td>Original init</td><td>94.96</td><td>94.66</td><td class="neg">-0.30 pp</td></tr><tr><td>40%</td><td>Random reinit</td><td>90.86</td><td>93.14</td><td class="pos">+2.29 pp</td></tr><tr><td>60%</td><td>Pruning only</td><td>71.50</td><td>76.34</td><td class="pos">+4.85 pp</td></tr><tr><td>60%</td><td>Original init</td><td>95.01</td><td>94.13</td><td class="neg">-0.88 pp</td></tr><tr><td>60%</td><td>Random reinit</td><td>90.99</td><td>91.76</td><td class="pos">+0.77 pp</td></tr><tr><td>80%</td><td>Pruning only</td><td>0.83</td><td>42.48</td><td class="pos">+41.65 pp</td></tr><tr><td>80%</td><td>Original init</td><td>93.38</td><td>89.97</td><td class="neg">-3.41 pp</td></tr><tr><td>80%</td><td>Random reinit</td><td>83.86</td><td>90.70</td><td class="pos">+6.84 pp</td></tr></tbody>
+</table>
+</div>
+<div class="caption">This table isolates the functional-location comparison at the same requested pruning fraction.</div>
+
+<h2>Adversarial robustness: PGD</h2>
+<div class="small" style="margin-bottom:9px;">Adversarial accuracy is shown across the three L∞ budgets. The final column is attack success rate at ε = 8/255. Rows are grouped by dense baseline, pruning-only models, and the two retraining regimes.</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Condition</th><th>Clean acc.</th><th>PGD 2/255</th><th>PGD 4/255</th><th>PGD 8/255</th><th>ASR @ 8/255</th></tr></thead>
+<tbody><tr class="dense"><td>Dense</td><td>94.44</td><td style="background: rgba(37,99,235,0.524);">80.80</td><td style="background: rgba(37,99,235,0.390);">56.41</td><td style="background: rgba(37,99,235,0.191);">20.20</td><td>78.61</td></tr><tr class="pruning-only"><td>Attention 20% Pruned</td><td>94.26</td><td style="background: rgba(37,99,235,0.523);">80.51</td><td style="background: rgba(37,99,235,0.392);">56.77</td><td style="background: rgba(37,99,235,0.194);">20.74</td><td>77.99</td></tr><tr class="pruning-only"><td>Attention 40% Pruned</td><td>91.88</td><td style="background: rgba(37,99,235,0.511);">78.39</td><td style="background: rgba(37,99,235,0.388);">56.02</td><td style="background: rgba(37,99,235,0.195);">20.90</td><td>77.25</td></tr><tr class="pruning-only"><td>Attention 60% Pruned</td><td>71.50</td><td style="background: rgba(37,99,235,0.348);">48.67</td><td style="background: rgba(37,99,235,0.213);">24.17</td><td style="background: rgba(37,99,235,0.112);">5.80</td><td>91.89</td></tr><tr class="pruning-only"><td>Attention 80% Pruned</td><td>0.83</td><td style="background: rgba(37,99,235,0.084);">0.73</td><td style="background: rgba(37,99,235,0.084);">0.71</td><td style="background: rgba(37,99,235,0.083);">0.53</td><td>36.19</td></tr><tr class="pruning-only"><td>Mlp 20% Pruned</td><td>94.28</td><td style="background: rgba(37,99,235,0.522);">80.29</td><td style="background: rgba(37,99,235,0.389);">56.16</td><td style="background: rgba(37,99,235,0.191);">20.14</td><td>78.64</td></tr><tr class="pruning-only"><td>Mlp 40% Pruned</td><td>93.66</td><td style="background: rgba(37,99,235,0.512);">78.58</td><td style="background: rgba(37,99,235,0.370);">52.68</td><td style="background: rgba(37,99,235,0.175);">17.31</td><td>81.52</td></tr><tr class="pruning-only"><td>Mlp 60% Pruned</td><td>76.34</td><td style="background: rgba(37,99,235,0.365);">51.81</td><td style="background: rgba(37,99,235,0.234);">27.97</td><td style="background: rgba(37,99,235,0.128);">8.76</td><td>88.53</td></tr><tr class="pruning-only"><td>Mlp 80% Pruned</td><td>42.48</td><td style="background: rgba(37,99,235,0.229);">27.02</td><td style="background: rgba(37,99,235,0.162);">14.90</td><td style="background: rgba(37,99,235,0.103);">4.21</td><td>90.08</td></tr><tr class="original-init"><td>Attention 20% Orig. init.</td><td>94.87</td><td style="background: rgba(37,99,235,0.539);">83.50</td><td style="background: rgba(37,99,235,0.429);">63.38</td><td style="background: rgba(37,99,235,0.228);">26.83</td><td>71.72</td></tr><tr class="random-init"><td>Attention 20% Random init.</td><td>93.78</td><td style="background: rgba(37,99,235,0.529);">81.65</td><td style="background: rgba(37,99,235,0.405);">59.07</td><td style="background: rgba(37,99,235,0.201);">22.07</td><td>76.46</td></tr><tr class="original-init"><td>Attention 40% Orig. init.</td><td>94.96</td><td style="background: rgba(37,99,235,0.539);">83.50</td><td style="background: rgba(37,99,235,0.422);">62.22</td><td style="background: rgba(37,99,235,0.226);">26.52</td><td>72.08</td></tr><tr class="random-init"><td>Attention 40% Random init.</td><td>90.86</td><td style="background: rgba(37,99,235,0.471);">71.17</td><td style="background: rgba(37,99,235,0.319);">43.40</td><td style="background: rgba(37,99,235,0.154);">13.40</td><td>85.25</td></tr><tr class="original-init"><td>Attention 60% Orig. init.</td><td>95.01</td><td style="background: rgba(37,99,235,0.536);">82.87</td><td style="background: rgba(37,99,235,0.423);">62.43</td><td style="background: rgba(37,99,235,0.217);">24.88</td><td>73.82</td></tr><tr class="random-init"><td>Attention 60% Random init.</td><td>90.99</td><td style="background: rgba(37,99,235,0.476);">72.05</td><td style="background: rgba(37,99,235,0.328);">45.04</td><td style="background: rgba(37,99,235,0.160);">14.54</td><td>84.01</td></tr><tr class="original-init"><td>Attention 80% Orig. init.</td><td>93.38</td><td style="background: rgba(37,99,235,0.521);">80.20</td><td style="background: rgba(37,99,235,0.395);">57.23</td><td style="background: rgba(37,99,235,0.198);">21.52</td><td>76.95</td></tr><tr class="random-init"><td>Attention 80% Random init.</td><td>83.86</td><td style="background: rgba(37,99,235,0.374);">53.38</td><td style="background: rgba(37,99,235,0.224);">26.24</td><td style="background: rgba(37,99,235,0.113);">5.92</td><td>92.94</td></tr><tr class="original-init"><td>Mlp 20% Orig. init.</td><td>94.84</td><td style="background: rgba(37,99,235,0.532);">82.26</td><td style="background: rgba(37,99,235,0.410);">60.02</td><td style="background: rgba(37,99,235,0.206);">22.86</td><td>75.90</td></tr><tr class="random-init"><td>Mlp 20% Random init.</td><td>93.50</td><td style="background: rgba(37,99,235,0.513);">78.69</td><td style="background: rgba(37,99,235,0.379);">54.42</td><td style="background: rgba(37,99,235,0.178);">17.82</td><td>80.94</td></tr><tr class="original-init"><td>Mlp 40% Orig. init.</td><td>94.66</td><td style="background: rgba(37,99,235,0.532);">82.16</td><td style="background: rgba(37,99,235,0.409);">59.73</td><td style="background: rgba(37,99,235,0.203);">22.41</td><td>76.33</td></tr><tr class="random-init"><td>Mlp 40% Random init.</td><td>93.14</td><td style="background: rgba(37,99,235,0.500);">76.28</td><td style="background: rgba(37,99,235,0.350);">49.07</td><td style="background: rgba(37,99,235,0.159);">14.35</td><td>84.59</td></tr><tr class="original-init"><td>Mlp 60% Orig. init.</td><td>94.13</td><td style="background: rgba(37,99,235,0.517);">79.40</td><td style="background: rgba(37,99,235,0.369);">52.48</td><td style="background: rgba(37,99,235,0.181);">18.27</td><td>80.59</td></tr><tr class="random-init"><td>Mlp 60% Random init.</td><td>91.76</td><td style="background: rgba(37,99,235,0.481);">72.90</td><td style="background: rgba(37,99,235,0.323);">44.16</td><td style="background: rgba(37,99,235,0.149);">12.50</td><td>86.38</td></tr><tr class="original-init"><td>Mlp 80% Orig. init.</td><td>89.97</td><td style="background: rgba(37,99,235,0.454);">67.98</td><td style="background: rgba(37,99,235,0.287);">37.69</td><td style="background: rgba(37,99,235,0.130);">9.05</td><td>89.94</td></tr><tr class="random-init"><td>Mlp 80% Random init.</td><td>90.70</td><td style="background: rgba(37,99,235,0.464);">69.73</td><td style="background: rgba(37,99,235,0.287);">37.56</td><td style="background: rgba(37,99,235,0.122);">7.59</td><td>91.64</td></tr></tbody>
+</table>
+</div>
+<div class="caption">Attack success rate is conditioned on samples that are correctly classified before the attack.</div>
+
+<h2>FGSM vs PGD at ε = 8/255</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Condition</th><th>Clean acc.</th><th>FGSM acc.</th><th>PGD acc.</th><th>FGSM ASR</th><th>PGD ASR</th></tr></thead>
+<tbody><tr><td>Dense</td><td>94.44</td><td>47.70</td><td>20.20</td><td>49.50</td><td>78.61</td></tr><tr><td>Attention 20% Pruned</td><td>94.26</td><td>48.10</td><td>20.74</td><td>48.97</td><td>77.99</td></tr><tr><td>Attention 40% Pruned</td><td>91.88</td><td>45.64</td><td>20.90</td><td>50.33</td><td>77.25</td></tr><tr><td>Attention 60% Pruned</td><td>71.50</td><td>10.55</td><td>5.80</td><td>85.25</td><td>91.89</td></tr><tr><td>Attention 80% Pruned</td><td>0.83</td><td>0.60</td><td>0.53</td><td>27.62</td><td>36.19</td></tr><tr><td>Mlp 20% Pruned</td><td>94.28</td><td>47.14</td><td>20.14</td><td>50.00</td><td>78.64</td></tr><tr><td>Mlp 40% Pruned</td><td>93.66</td><td>38.64</td><td>17.31</td><td>58.75</td><td>81.52</td></tr><tr><td>Mlp 60% Pruned</td><td>76.34</td><td>13.56</td><td>8.76</td><td>82.23</td><td>88.53</td></tr><tr><td>Mlp 80% Pruned</td><td>42.48</td><td>5.78</td><td>4.21</td><td>86.39</td><td>90.08</td></tr><tr><td>Attention 20% Orig. init.</td><td>94.87</td><td>55.63</td><td>26.83</td><td>41.36</td><td>71.72</td></tr><tr><td>Attention 20% Random init.</td><td>93.78</td><td>47.37</td><td>22.07</td><td>49.49</td><td>76.46</td></tr><tr><td>Attention 40% Orig. init.</td><td>94.96</td><td>54.34</td><td>26.52</td><td>42.77</td><td>72.08</td></tr><tr><td>Attention 40% Random init.</td><td>90.86</td><td>33.78</td><td>13.40</td><td>62.82</td><td>85.25</td></tr><tr><td>Attention 60% Orig. init.</td><td>95.01</td><td>53.54</td><td>24.88</td><td>43.65</td><td>73.82</td></tr><tr><td>Attention 60% Random init.</td><td>90.99</td><td>34.81</td><td>14.54</td><td>61.74</td><td>84.01</td></tr><tr><td>Attention 80% Orig. init.</td><td>93.38</td><td>44.81</td><td>21.52</td><td>52.01</td><td>76.95</td></tr><tr><td>Attention 80% Random init.</td><td>83.86</td><td>17.94</td><td>5.92</td><td>78.61</td><td>92.94</td></tr><tr><td>Mlp 20% Orig. init.</td><td>94.84</td><td>50.51</td><td>22.86</td><td>46.74</td><td>75.90</td></tr><tr><td>Mlp 20% Random init.</td><td>93.50</td><td>41.92</td><td>17.82</td><td>55.16</td><td>80.94</td></tr><tr><td>Mlp 40% Orig. init.</td><td>94.66</td><td>49.42</td><td>22.41</td><td>47.79</td><td>76.33</td></tr><tr><td>Mlp 40% Random init.</td><td>93.14</td><td>34.50</td><td>14.35</td><td>62.96</td><td>84.59</td></tr><tr><td>Mlp 60% Orig. init.</td><td>94.13</td><td>37.05</td><td>18.27</td><td>60.64</td><td>80.59</td></tr><tr><td>Mlp 60% Random init.</td><td>91.76</td><td>26.03</td><td>12.50</td><td>71.63</td><td>86.38</td></tr><tr><td>Mlp 80% Orig. init.</td><td>89.97</td><td>21.14</td><td>9.05</td><td>76.50</td><td>89.94</td></tr><tr><td>Mlp 80% Random init.</td><td>90.70</td><td>19.43</td><td>7.59</td><td>78.58</td><td>91.64</td></tr></tbody>
+</table>
+</div>
+
+<h2>Observed result values</h2>
+<div class="findings">
+<div class="finding"><strong>Immediate pruning.</strong> At 80% location-specific pruning, attention pruning falls to <b>0.83%</b> accuracy, a <b>93.61 pp</b> decrease from dense. MLP pruning at the same 80% level retains <b>42.48%</b>, a <b>51.96 pp</b> decrease.</div>
+<div class="finding"><strong>Original initialization.</strong> The original-initialization retrained models exceed their corresponding random-reinitialized models At clean test accuracy, the largest original-minus-random gap is <b>9.52 pp</b> for Attention pruning at 80%; the only negative gap is <b>-0.74 pp</b> for Mlp pruning at 80%.</div>
+<div class="finding"><strong>Recovery after pruning.</strong> The largest recovery from pruning-only to retraining is <b>92.55 pp</b>, occurring in attention pruning at 80% with original initialization (<b>92.55 pp</b>).</div>
+<div class="finding"><strong>PGD at 8/255.</strong> The highest adversarial accuracy among the sparse/retrained conditions is <b>83.50%</b> for <b>Attention 20% Orig. init.</b>; the lowest is <b>0.53%</b> for <b>Attention 80% Pruned</b>. Dense accuracy under the same PGD budget is <b>20.20%</b>.</div>
+</div>
+
+<h2>Source data</h2>
+<div class="caption">Clean evaluation and retraining results are taken from the supplied experiment result table. Adversarial metrics are taken from the supplied FGSM/PGD result table. No external data are added.</div>
+
+</main>
+</body>
+</html>
