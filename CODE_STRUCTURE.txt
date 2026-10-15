@@ -1,5 +1,8 @@
 Repository modules
 
+The source files are kept under `src/` and are packaged and installed as the
+`vit_pruning` package by `pyproject.toml`.
+
 vit_pruning/config.py          Model, training, data, output, and MLflow configuration
 vit_pruning/reproducibility.py Seeds and model-state utilities
 vit_pruning/data.py            GTSRB transforms, splits, and data loaders
