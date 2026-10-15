@@ -1,4 +1,4 @@
-"""Run the experiment pipeline with ``python -m vit_pruning``."""
+"""Run the experiment pipeline with ``python -m src``."""
 
 import multiprocessing as mp
 

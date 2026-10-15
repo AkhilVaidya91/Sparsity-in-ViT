@@ -10,10 +10,10 @@ The code is split into small Python modules. `config.py` stores model settings, 
 
 ## Requirements
 
-Use Python 3.10 or newer. Install the packages with:
+Use Python 3.10 or newer. UV manages the virtual environment, lockfile, and editable project installation:
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 PyTorch must be installed with a build that supports the CUDA version on the target machine. The main pipeline requires CUDA and at least two visible GPUs. This requirement is kept because the original retraining stage starts two GPU workers. A single-GPU setup will stop with an error before training begins.
@@ -31,10 +31,12 @@ export OUTPUT_DIR="$HOME/experiments/vit-pruning"
 
 ## Run the pipeline
 
-Start the complete experiment with:
+Start the complete experiment with either:
 
 ```bash
-python -m vit_pruning
+uv run vit-pruning
+# or:
+uv run python -m vit_pruning
 ```
 
 The pipeline trains the dense model first. It then prepares Wanda pruning masks for the attention and MLP parameter groups. It evaluates the masked models, runs the adversarial checks, and starts the retraining jobs. The configured pruning ratios apply to parameters inside the selected group, not to all parameters in the model. The code saves its results as CSV files. It records training history and saves checkpoints at the configured intervals.
@@ -46,7 +48,7 @@ The code logs each training run to MLflow. It records run settings, training and
 The default tracking database is `outputs/mlflow.db`. After a run, open a second terminal in the repository and start the MLflow interface:
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///outputs/mlflow.db
+uv run mlflow ui --backend-store-uri sqlite:///outputs/mlflow.db
 ```
 
 Then open the local address printed by MLflow. If you use a custom `OUTPUT_DIR` or `MLFLOW_TRACKING_URI`, point the interface to the same tracking store. The experiment name defaults to `vit-structured-pruning`.
