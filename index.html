@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Functional Sparsity in a Vision Transformer | Experimental Results</title>
+<style>
+:root{--ink:#1b2430;--muted:#667181;--line:#dfe4e9;--surface:#fff;--canvas:#f6f7f8;--blue:#3569a8;--teal:#22796d;--orange:#bd6c32;--red:#a84642;--soft-blue:#edf3fa;--soft-teal:#eaf4f1;--soft-orange:#f8efe8;--radius:8px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--canvas);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums}
+main{max-width:1160px;margin:0 auto;padding:42px 30px 64px}
+header{padding:0 0 25px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:11px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+h1{max-width:820px;font-size:clamp(29px,4vw,42px);line-height:1.12;letter-spacing:-.04em;font-weight:680;margin:0 0 12px}
+.subtitle{color:#505b69;font-size:16px;max-width:800px;margin-bottom:20px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--muted)}
+.meta span{display:flex;gap:6px;align-items:center}.meta strong{color:#414c5a;font-weight:650}
+.metric-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:22px 0 0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.metric{padding:15px 18px;border-right:1px solid var(--line)}.metric:last-child{border-right:0}
+.metric-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:5px}
+.metric-value{font-size:27px;line-height:1.15;font-weight:680;letter-spacing:-.04em}.metric-note{font-size:11px;color:var(--muted);margin-top:5px}
+section{padding-top:34px;scroll-margin-top:20px}
+.section-heading{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:start;margin-bottom:16px}
+.section-number{font-size:12px;color:var(--muted);font-weight:750;padding-top:4px}
+h2{font-size:22px;letter-spacing:-.025em;line-height:1.25;margin:0 0 6px;font-weight:675}
+.section-desc{font-size:13px;color:#5b6573;max-width:820px;margin:0}
+.panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:18px 20px}
+.panel-title{font-size:13px;font-weight:700;margin:0 0 3px}.panel-subtitle{font-size:11px;color:var(--muted);margin:0 0 16px}
+.story-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:14px}
+.observation{padding:16px 18px;border-left:3px solid #aab7c7;background:#fbfcfd;border-radius:0 var(--radius) var(--radius) 0}
+.observation b{display:block;font-size:12px;margin-bottom:4px}.observation p{font-size:13px;color:#505b68;margin:0}
+.heatmap{width:100%;display:grid;gap:7px}.heat-row{display:grid;grid-template-columns:110px repeat(4,minmax(0,1fr));gap:7px;align-items:stretch}.heat-colhead{font-size:11px;color:var(--muted);text-align:center;padding:0 0 3px}.heat-rowhead{display:flex;align-items:center;font-size:12px;font-weight:650;color:#485362}.heat-cell{min-height:69px;border:1px solid rgba(26,35,48,.07);border-radius:5px;padding:10px 9px;display:flex;flex-direction:column;justify-content:center;text-align:center}.heat-cell strong{font-size:19px;line-height:1.15;font-weight:720}.heat-cell span{font-size:10px;color:#4b5866;margin-top:5px}
+.legend-inline{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin-top:12px}.gradient-key{display:inline-block;width:112px;height:8px;border-radius:20px;background:linear-gradient(90deg,#f7deda,#f3efcc,#dcefe4)}
+.chart-wrap{width:100%;overflow:auto}#attack-dumbbell{max-height:620px;overflow-y:auto}.chart-wrap svg{display:block;width:100%;height:auto;min-width:640px}.chart-note{font-size:11px;color:var(--muted);margin:10px 0 0}.legend{display:flex;align-items:center;gap:15px;flex-wrap:wrap;font-size:11px;color:#5d6875;margin:0 0 12px}.legend-item{display:inline-flex;align-items:center;gap:6px}.swatch{display:inline-block;width:9px;height:9px;border-radius:50%}.line-swatch{display:inline-block;width:18px;height:2px;background:#b6c0cb}
+.robust-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:14px}.robust-head .panel-title{margin-bottom:3px}.filter{border:1px solid var(--line);padding:8px 10px;background:#fff;border-radius:6px;color:var(--ink);font:inherit;font-size:12px;min-width:175px}
+.robust-table{display:grid;gap:3px;min-width:660px}.robust-header,.robust-row{display:grid;grid-template-columns:minmax(245px,2fr) repeat(3,minmax(95px,1fr));gap:4px;align-items:center}.robust-header{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:0 0 7px}.robust-header div:not(:first-child){text-align:center}.robust-row{min-height:28px;padding:2px 0}.robust-row.group-start{border-top:1px solid var(--line);padding-top:7px;margin-top:4px}.robust-label{font-size:11px;color:#384453;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px}.robust-cell{border:1px solid rgba(26,35,48,.045);border-radius:4px;text-align:center;padding:4px 3px;font-size:11px;font-weight:650;min-height:26px}.robust-label .group-tag{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-left:6px}
+.callout{margin-top:14px;border-top:1px solid var(--line);padding-top:14px;font-size:13px;color:#46515f}.callout strong{color:var(--ink)}
+details{border:1px solid var(--line);border-radius:var(--radius);background:#fff;margin-top:10px}summary{cursor:pointer;padding:13px 15px;font-size:12px;font-weight:700;color:#34404f;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px}summary::-webkit-details-marker{display:none}summary:after{content:"+";font-size:18px;line-height:1;color:var(--muted);font-weight:400}details[open] summary:after{content:"−"}.detail-inner{padding:0 15px 15px}.table-scroll{overflow:auto;max-width:100%;border-top:1px solid var(--line)}table{width:100%;border-collapse:collapse;font-size:11px;min-width:750px}th,td{padding:8px 9px;text-align:right;border-bottom:1px solid #edf0f2;white-space:nowrap}th{position:sticky;top:0;background:#f7f8fa;color:#596575;font-size:10px;font-weight:700}td:first-child,th:first-child{text-align:left}tbody tr:last-child td{border-bottom:0}.dense-row td{background:#fafbfc}.up{color:var(--teal);font-weight:650}.down{color:var(--red);font-weight:650}
+.data-note{margin-top:15px;padding:12px 14px;background:#fbf7f1;border:1px solid #eadfcf;border-radius:6px;color:#675748;font-size:11px}.source-note{margin-top:20px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:14px}
+
+.trend-overview{padding-top:24px}
+.trend-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:14px}
+.trend-head .eyebrow{margin-bottom:7px}
+.trend-head h2{font-size:22px;letter-spacing:-.025em;line-height:1.25;margin:0 0 6px;font-weight:675}
+.trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.trend-panel{min-width:0}
+.trend-chart{width:100%;overflow:hidden}
+.trend-chart svg{display:block;width:100%;height:auto;min-width:0}
+.trend-panel .legend{gap:9px 13px;margin:0 0 10px}
+.trend-panel .legend-item{font-size:10.5px}
+.trend-panel .line-swatch{width:17px;flex:0 0 17px}
+@media(max-width:820px){.trend-grid{grid-template-columns:1fr}.trend-head{align-items:start;flex-direction:column}}
+@media(max-width:820px){main{padding:28px 16px 44px}.metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.metric:nth-child(2){border-right:0}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}.story-grid{grid-template-columns:1fr}.section-heading{grid-template-columns:36px minmax(0,1fr)}.robust-head{align-items:start;flex-direction:column}.filter{width:100%}.heat-row{grid-template-columns:88px repeat(4,minmax(0,1fr));gap:5px}.heat-cell{min-height:60px;padding:8px 4px}.heat-cell strong{font-size:16px}}
+@media(max-width:480px){.metric-value{font-size:23px}.metric{padding:12px}.heat-rowhead{font-size:11px}.heat-cell strong{font-size:14px}.heat-cell span{font-size:9px}.panel{padding:14px}}
+@media print{body{background:#fff}main{max-width:none;padding:10mm}.metric-strip,.panel,details{break-inside:avoid}.chart-wrap{overflow:visible}.chart-wrap svg{min-width:0}details .detail-inner{display:block}details:not([open]) .detail-inner{display:block}summary:after{display:none}.filter{display:none}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">Experimental results</div>
+  <h1>Functional sparsity in a Vision Transformer</h1>
+  <div class="subtitle">How pruning location and initialization affect clean accuracy and adversarial robustness.</div>
+  <div class="meta"><span><strong>Dataset</strong> GTSRB</span><span><strong>Model</strong> 6 blocks · 128 hidden dimension · 4 attention heads</span><span><strong>Pruning</strong> Unstructured, location-specific, 20% to 80%</span><span><strong>Attacks</strong> FGSM and 10-step PGD, ε = 2/255 to 8/255</span></div>
+  <div class="metric-strip">
+    <div class="metric"><div class="metric-label">Dense baseline</div><div class="metric-value">94.44%</div><div class="metric-note">Clean test accuracy</div></div>
+    <div class="metric"><div class="metric-label">Attention, 80% pruned</div><div class="metric-value">0.83%</div><div class="metric-note">Before retraining</div></div>
+    <div class="metric"><div class="metric-label">MLP, 80% pruned</div><div class="metric-value">42.48%</div><div class="metric-note">Before retraining</div></div>
+    <div class="metric"><div class="metric-label">Attention, 80% rewound</div><div class="metric-value">93.38%</div><div class="metric-note">Original initialization</div></div>
+  </div>
+</header>
+
+
+<section id="trend-overview" class="trend-overview" aria-labelledby="trend-title">
+  <div class="trend-head"><div><div class="eyebrow">Trend overview</div><h2 id="trend-title">Accuracy trends across pruning levels</h2><p class="section-desc">The original line charts are retained here, above the detailed heatmaps and model comparisons.</p></div></div>
+  <div class="trend-grid">
+    <div class="panel trend-panel">
+      <p class="panel-title">Immediate pruning accuracy</p>
+      <p class="panel-subtitle">Clean test accuracy before retraining. Shared 0 to 100% y-axis.</p>
+      <div class="legend">
+        <span class="legend-item"><i class="line-swatch" style="background:var(--ink)"></i>Dense baseline</span>
+        <span class="legend-item"><i class="line-swatch" style="background:var(--blue)"></i>Attention pruning</span>
+        <span class="legend-item"><i class="line-swatch" style="background:var(--orange)"></i>MLP pruning</span>
+      </div>
+      <div id="line-pruning" class="trend-chart" role="img" aria-label="Line chart showing clean test accuracy after immediate attention and MLP pruning at 20, 40, 60, and 80 percent pruning"></div>
+    </div>
+    <div class="panel trend-panel">
+      <p class="panel-title">Retrained accuracy</p>
+      <p class="panel-subtitle">Clean test accuracy after original or random initialization. Y-axis starts at 80%.</p>
+      <div class="legend">
+        <span class="legend-item"><i class="line-swatch" style="background:var(--ink)"></i>Attention, original</span>
+        <span class="legend-item"><i class="line-swatch" style="background:var(--blue)"></i>Attention, random</span>
+        <span class="legend-item"><i class="line-swatch" style="background:var(--orange)"></i>MLP, original</span>
+        <span class="legend-item"><i class="line-swatch" style="background:var(--teal)"></i>MLP, random</span>
+      </div>
+      <div id="line-retrained" class="trend-chart" role="img" aria-label="Line chart showing clean test accuracy after retraining from original or random initialization at 20, 40, 60, and 80 percent pruning"></div>
+    </div>
+  </div>
+</section>
+
+<section id="clean">
+  <div class="section-heading"><div class="section-number">01</div><div><h2>Clean accuracy after pruning</h2><p class="section-desc">At low pruning levels, the two locations behave similarly. At 80%, immediate attention pruning collapses more sharply than MLP pruning.</p></div></div>
+  <div class="story-grid">
+    <div class="panel">
+      <p class="panel-title">Pruning-only accuracy</p><p class="panel-subtitle">Test accuracy by location and requested pruning fraction. Cell color encodes accuracy.</p>
+      <div id="clean-heatmap" class="heatmap" aria-label="Heatmap of pruning-only accuracy"></div>
+      <div class="legend-inline"><span>Lower accuracy</span><span class="gradient-key"></span><span>Higher accuracy</span></div>
+      <p class="chart-note">Dense reference: 94.44%. The heatmap uses a common 0 to 100% scale.</p>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Location gap at each pruning level</p><p class="panel-subtitle">MLP accuracy minus attention accuracy after pruning only.</p>
+      <div id="location-gap"></div>
+      <div class="callout"><strong>At 80% pruning,</strong> MLP retains 41.65 percentage points more clean accuracy than attention (42.48% vs 0.83%). This comparison uses the same requested pruning fraction within each location.</div>
+    </div>
+  </div>
+</section>
+
+<section id="retraining">
+  <div class="section-heading"><div class="section-number">02</div><div><h2>Retraining recovers clean performance</h2><p class="section-desc">Compare retraining from the original recorded initialization with retraining from a random initialization. The vertical reference marks the dense baseline.</p></div></div>
+  <div class="panel">
+    <div class="legend"><span class="legend-item"><i class="swatch" style="background:var(--teal)"></i>Original initialization</span><span class="legend-item"><i class="swatch" style="background:var(--orange)"></i>Random reinitialization</span><span class="legend-item"><i class="line-swatch"></i>Dense baseline, 94.44%</span></div>
+    <div id="init-dumbbell" class="chart-wrap" aria-label="Dumbbell plot comparing original and random initialization accuracies"></div>
+    <p class="chart-note">Points show clean test accuracy. Hover over a point for its exact value. The right column reports the supplied Δ Init values.</p>
+    <div class="callout"><strong>Original initialization is higher in 7 of 8 comparisons.</strong> The largest reported gap is +9.52 pp for attention at 80%. The exception is MLP at 80%, where random reinitialization is 0.74 pp higher.</div>
+  </div>
+  <details><summary>Full clean accuracy and delta table</summary><div class="detail-inner"><div class="table-scroll"><table id="clean-table"></table></div></div></details>
+</section>
+
+<section id="robustness">
+  <div class="section-heading"><div class="section-number">03</div><div><h2>Adversarial robustness under PGD</h2><p class="section-desc">Adversarial test accuracy falls as the perturbation budget grows. Use the filter to compare pruning-only, original-initialization, and random-initialization conditions.</p></div></div>
+  <div class="panel">
+    <div class="robust-head"><div><p class="panel-title">PGD adversarial accuracy</p><p class="panel-subtitle" style="margin-bottom:0">Rows follow the supplied result table. Color encodes accuracy on a shared 0 to 100% scale.</p></div><label><span style="font-size:11px;color:var(--muted);margin-right:7px">Show</span><select id="robust-filter" class="filter" aria-label="Filter PGD robustness rows"><option value="all">All conditions</option><option value="pruned">Pruning only</option><option value="original">Original initialization</option><option value="random">Random reinitialization</option></select></label></div>
+    <div id="pgd-heatmap" class="chart-wrap"></div>
+    <div class="legend-inline"><span>Lower accuracy</span><span class="gradient-key"></span><span>Higher accuracy</span></div>
+    <div class="callout"><strong>At ε = 8/255,</strong> the dense baseline reaches 20.20% adversarial accuracy. Original-initialization attention models range from 21.52% to 26.83%, while original-initialization MLP models range from 9.05% to 22.86%.</div>
+  </div>
+  <details><summary>Full PGD results, including attack success rate</summary><div class="detail-inner"><div class="table-scroll"><table id="pgd-table"></table></div></div></details>
+</section>
+
+<section id="attacks">
+  <div class="section-heading"><div class="section-number">04</div><div><h2>FGSM versus PGD at ε = 8/255</h2><p class="section-desc">Each row connects the FGSM and PGD adversarial accuracies for the same model condition. Lower accuracy indicates a more successful attack against that model.</p></div></div>
+  <div class="panel">
+    <div class="legend"><span class="legend-item"><i class="swatch" style="background:var(--blue)"></i>FGSM accuracy</span><span class="legend-item"><i class="swatch" style="background:var(--orange)"></i>PGD accuracy</span></div>
+    <div id="attack-dumbbell" class="chart-wrap" aria-label="Paired dot plot comparing FGSM and PGD accuracy at epsilon 8 over 255"></div>
+    <p class="chart-note">All listed conditions have lower accuracy under PGD than FGSM at the same ε. Scroll within the plot to inspect every condition.</p>
+  </div>
+  <details><summary>Full FGSM and PGD comparison table</summary><div class="detail-inner"><div class="table-scroll"><table id="attack-table"></table></div></div></details>
+</section>
+
+</main>
+<script>
+const D = {"clean":[{"location":"Attention","pruning":20,"pruned":94.26,"deltaDensePruned":"-0.18 pp","original":94.87,"deltaRetrainOriginal":"+0.61 pp","deltaDenseOriginal":"+0.43 pp","random":93.78,"deltaRetrainRandom":"-0.48 pp","deltaDenseRandom":"-0.66 pp","deltaInit":"+1.08 pp"},{"location":"Attention","pruning":40,"pruned":91.88,"deltaDensePruned":"-2.56 pp","original":94.96,"deltaRetrainOriginal":"+3.07 pp","deltaDenseOriginal":"+0.51 pp","random":90.86,"deltaRetrainRandom":"-1.03 pp","deltaDenseRandom":"-3.59 pp","deltaInit":"+4.10 pp"},{"location":"Attention","pruning":60,"pruned":71.5,"deltaDensePruned":"-22.95 pp","original":95.01,"deltaRetrainOriginal":"+23.52 pp","deltaDenseOriginal":"+0.57 pp","random":90.99,"deltaRetrainRandom":"+19.49 pp","deltaDenseRandom":"-3.45 pp","deltaInit":"+4.02 pp"},{"location":"Attention","pruning":80,"pruned":0.83,"deltaDensePruned":"-93.61 pp","original":93.38,"deltaRetrainOriginal":"+92.55 pp","deltaDenseOriginal":"-1.06 pp","random":83.86,"deltaRetrainRandom":"+83.03 pp","deltaDenseRandom":"-10.58 pp","deltaInit":"+9.52 pp"},{"location":"MLP","pruning":20,"pruned":94.28,"deltaDensePruned":"-0.16 pp","original":94.84,"deltaRetrainOriginal":"+0.55 pp","deltaDenseOriginal":"+0.40 pp","random":93.5,"deltaRetrainRandom":"-0.78 pp","deltaDenseRandom":"-0.94 pp","deltaInit":"+1.34 pp"},{"location":"MLP","pruning":40,"pruned":93.66,"deltaDensePruned":"-0.78 pp","original":94.66,"deltaRetrainOriginal":"+1.00 pp","deltaDenseOriginal":"+0.21 pp","random":93.14,"deltaRetrainRandom":"-0.51 pp","deltaDenseRandom":"-1.30 pp","deltaInit":"+1.51 pp"},{"location":"MLP","pruning":60,"pruned":76.34,"deltaDensePruned":"-18.10 pp","original":94.13,"deltaRetrainOriginal":"+17.79 pp","deltaDenseOriginal":"-0.31 pp","random":91.76,"deltaRetrainRandom":"+15.42 pp","deltaDenseRandom":"-2.68 pp","deltaInit":"+2.38 pp"},{"location":"MLP","pruning":80,"pruned":42.48,"deltaDensePruned":"-51.96 pp","original":89.97,"deltaRetrainOriginal":"+47.49 pp","deltaDenseOriginal":"-4.47 pp","random":90.7,"deltaRetrainRandom":"+48.23 pp","deltaDenseRandom":"-3.74 pp","deltaInit":"-0.74 pp"}],"compare":[{"pruning":"20%","condition":"Pruning only","attention":94.26,"mlp":94.28,"difference":"+0.02 pp"},{"pruning":"20%","condition":"Original init","attention":94.87,"mlp":94.84,"difference":"-0.03 pp"},{"pruning":"20%","condition":"Random reinit","attention":93.78,"mlp":93.5,"difference":"-0.29 pp"},{"pruning":"40%","condition":"Pruning only","attention":91.88,"mlp":93.66,"difference":"+1.77 pp"},{"pruning":"40%","condition":"Original init","attention":94.96,"mlp":94.66,"difference":"-0.30 pp"},{"pruning":"40%","condition":"Random reinit","attention":90.86,"mlp":93.14,"difference":"+2.29 pp"},{"pruning":"60%","condition":"Pruning only","attention":71.5,"mlp":76.34,"difference":"+4.85 pp"},{"pruning":"60%","condition":"Original init","attention":95.01,"mlp":94.13,"difference":"-0.88 pp"},{"pruning":"60%","condition":"Random reinit","attention":90.99,"mlp":91.76,"difference":"+0.77 pp"},{"pruning":"80%","condition":"Pruning only","attention":0.83,"mlp":42.48,"difference":"+41.65 pp"},{"pruning":"80%","condition":"Original init","attention":93.38,"mlp":89.97,"difference":"-3.41 pp"},{"pruning":"80%","condition":"Random reinit","attention":83.86,"mlp":90.7,"difference":"+6.84 pp"}],"pgd":[{"condition":"Dense","clean":94.44,"pgd2":80.8,"pgd4":56.41,"pgd8":20.2,"asr8":78.61},{"condition":"Attention 20% Pruned","clean":94.26,"pgd2":80.51,"pgd4":56.77,"pgd8":20.74,"asr8":77.99},{"condition":"Attention 40% Pruned","clean":91.88,"pgd2":78.39,"pgd4":56.02,"pgd8":20.9,"asr8":77.25},{"condition":"Attention 60% Pruned","clean":71.5,"pgd2":48.67,"pgd4":24.17,"pgd8":5.8,"asr8":91.89},{"condition":"Attention 80% Pruned","clean":0.83,"pgd2":0.73,"pgd4":0.71,"pgd8":0.53,"asr8":36.19},{"condition":"Mlp 20% Pruned","clean":94.28,"pgd2":80.29,"pgd4":56.16,"pgd8":20.14,"asr8":78.64},{"condition":"Mlp 40% Pruned","clean":93.66,"pgd2":78.58,"pgd4":52.68,"pgd8":17.31,"asr8":81.52},{"condition":"Mlp 60% Pruned","clean":76.34,"pgd2":51.81,"pgd4":27.97,"pgd8":8.76,"asr8":88.53},{"condition":"Mlp 80% Pruned","clean":42.48,"pgd2":27.02,"pgd4":14.9,"pgd8":4.21,"asr8":90.08},{"condition":"Attention 20% Orig. init.","clean":94.87,"pgd2":83.5,"pgd4":63.38,"pgd8":26.83,"asr8":71.72},{"condition":"Attention 20% Random init.","clean":93.78,"pgd2":81.65,"pgd4":59.07,"pgd8":22.07,"asr8":76.46},{"condition":"Attention 40% Orig. init.","clean":94.96,"pgd2":83.5,"pgd4":62.22,"pgd8":26.52,"asr8":72.08},{"condition":"Attention 40% Random init.","clean":90.86,"pgd2":71.17,"pgd4":43.4,"pgd8":13.4,"asr8":85.25},{"condition":"Attention 60% Orig. init.","clean":95.01,"pgd2":82.87,"pgd4":62.43,"pgd8":24.88,"asr8":73.82},{"condition":"Attention 60% Random init.","clean":90.99,"pgd2":72.05,"pgd4":45.04,"pgd8":14.54,"asr8":84.01},{"condition":"Attention 80% Orig. init.","clean":93.38,"pgd2":80.2,"pgd4":57.23,"pgd8":21.52,"asr8":76.95},{"condition":"Attention 80% Random init.","clean":83.86,"pgd2":53.38,"pgd4":26.24,"pgd8":5.92,"asr8":92.94},{"condition":"Mlp 20% Orig. init.","clean":94.84,"pgd2":82.26,"pgd4":60.02,"pgd8":22.86,"asr8":75.9},{"condition":"Mlp 20% Random init.","clean":93.5,"pgd2":78.69,"pgd4":54.42,"pgd8":17.82,"asr8":80.94},{"condition":"Mlp 40% Orig. init.","clean":94.66,"pgd2":82.16,"pgd4":59.73,"pgd8":22.41,"asr8":76.33},{"condition":"Mlp 40% Random init.","clean":93.14,"pgd2":76.28,"pgd4":49.07,"pgd8":14.35,"asr8":84.59},{"condition":"Mlp 60% Orig. init.","clean":94.13,"pgd2":79.4,"pgd4":52.48,"pgd8":18.27,"asr8":80.59},{"condition":"Mlp 60% Random init.","clean":91.76,"pgd2":72.9,"pgd4":44.16,"pgd8":12.5,"asr8":86.38},{"condition":"Mlp 80% Orig. init.","clean":89.97,"pgd2":67.98,"pgd4":37.69,"pgd8":9.05,"asr8":89.94},{"condition":"Mlp 80% Random init.","clean":90.7,"pgd2":69.73,"pgd4":37.56,"pgd8":7.59,"asr8":91.64}],"attack":[{"condition":"Dense","clean":94.44,"fgsm":47.7,"pgd":20.2,"fgsmAsr":49.5,"pgdAsr":78.61},{"condition":"Attention 20% Pruned","clean":94.26,"fgsm":48.1,"pgd":20.74,"fgsmAsr":48.97,"pgdAsr":77.99},{"condition":"Attention 40% Pruned","clean":91.88,"fgsm":45.64,"pgd":20.9,"fgsmAsr":50.33,"pgdAsr":77.25},{"condition":"Attention 60% Pruned","clean":71.5,"fgsm":10.55,"pgd":5.8,"fgsmAsr":85.25,"pgdAsr":91.89},{"condition":"Attention 80% Pruned","clean":0.83,"fgsm":0.6,"pgd":0.53,"fgsmAsr":27.62,"pgdAsr":36.19},{"condition":"Mlp 20% Pruned","clean":94.28,"fgsm":47.14,"pgd":20.14,"fgsmAsr":50.0,"pgdAsr":78.64},{"condition":"Mlp 40% Pruned","clean":93.66,"fgsm":38.64,"pgd":17.31,"fgsmAsr":58.75,"pgdAsr":81.52},{"condition":"Mlp 60% Pruned","clean":76.34,"fgsm":13.56,"pgd":8.76,"fgsmAsr":82.23,"pgdAsr":88.53},{"condition":"Mlp 80% Pruned","clean":42.48,"fgsm":5.78,"pgd":4.21,"fgsmAsr":86.39,"pgdAsr":90.08},{"condition":"Attention 20% Orig. init.","clean":94.87,"fgsm":55.63,"pgd":26.83,"fgsmAsr":41.36,"pgdAsr":71.72},{"condition":"Attention 20% Random init.","clean":93.78,"fgsm":47.37,"pgd":22.07,"fgsmAsr":49.49,"pgdAsr":76.46},{"condition":"Attention 40% Orig. init.","clean":94.96,"fgsm":54.34,"pgd":26.52,"fgsmAsr":42.77,"pgdAsr":72.08},{"condition":"Attention 40% Random init.","clean":90.86,"fgsm":33.78,"pgd":13.4,"fgsmAsr":62.82,"pgdAsr":85.25},{"condition":"Attention 60% Orig. init.","clean":95.01,"fgsm":53.54,"pgd":24.88,"fgsmAsr":43.65,"pgdAsr":73.82},{"condition":"Attention 60% Random init.","clean":90.99,"fgsm":34.81,"pgd":14.54,"fgsmAsr":61.74,"pgdAsr":84.01},{"condition":"Attention 80% Orig. init.","clean":93.38,"fgsm":44.81,"pgd":21.52,"fgsmAsr":52.01,"pgdAsr":76.95},{"condition":"Attention 80% Random init.","clean":83.86,"fgsm":17.94,"pgd":5.92,"fgsmAsr":78.61,"pgdAsr":92.94},{"condition":"Mlp 20% Orig. init.","clean":94.84,"fgsm":50.51,"pgd":22.86,"fgsmAsr":46.74,"pgdAsr":75.9},{"condition":"Mlp 20% Random init.","clean":93.5,"fgsm":41.92,"pgd":17.82,"fgsmAsr":55.16,"pgdAsr":80.94},{"condition":"Mlp 40% Orig. init.","clean":94.66,"fgsm":49.42,"pgd":22.41,"fgsmAsr":47.79,"pgdAsr":76.33},{"condition":"Mlp 40% Random init.","clean":93.14,"fgsm":34.5,"pgd":14.35,"fgsmAsr":62.96,"pgdAsr":84.59},{"condition":"Mlp 60% Orig. init.","clean":94.13,"fgsm":37.05,"pgd":18.27,"fgsmAsr":60.64,"pgdAsr":80.59},{"condition":"Mlp 60% Random init.","clean":91.76,"fgsm":26.03,"pgd":12.5,"fgsmAsr":71.63,"pgdAsr":86.38},{"condition":"Mlp 80% Orig. init.","clean":89.97,"fgsm":21.14,"pgd":9.05,"fgsmAsr":76.5,"pgdAsr":89.94},{"condition":"Mlp 80% Random init.","clean":90.7,"fgsm":19.43,"pgd":7.59,"fgsmAsr":78.58,"pgdAsr":91.64}]};
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toFixed(2);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function colorFor(v){const hue=Math.max(0,Math.min(120,(Number(v)/100)*120));const light=95-(Math.max(0,Math.min(100,Number(v)))*.065);return `hsl(${hue}, 47%, ${light}%)`;}
+function category(r){if(r.condition==='Dense')return 'dense';if(/Random init/i.test(r.condition))return 'random';if(/Orig\. init/i.test(r.condition))return 'original';return 'pruned';}
+function shortLabel(s){return s.replace(' Orig. init.',' · original').replace(' Random init.',' · random').replace(' Pruned',' · pruned').replace('Mlp','MLP');}
+
+function buildTrendCharts(){
+ const rates=[20,40,60,80];
+ const dense={name:'Dense baseline',color:'#1b2430',values:rates.map(()=>94.44)};
+ const attention=D.clean.filter(r=>r.location==='Attention').sort((a,b)=>a.pruning-b.pruning);
+ const mlp=D.clean.filter(r=>r.location==='MLP').sort((a,b)=>a.pruning-b.pruning);
+ renderTrendChart('line-pruning',{min:0,max:100,ticks:[0,25,50,75,100],series:[
+  dense,
+  {name:'Attention pruning',color:'#3569a8',values:attention.map(r=>r.pruned)},
+  {name:'MLP pruning',color:'#bd6c32',values:mlp.map(r=>r.pruned)}
+ ]});
+ renderTrendChart('line-retrained',{min:80,max:100,ticks:[80,85,90,95,100],series:[
+  {name:'Attention, original initialization',color:'#1b2430',values:attention.map(r=>r.original)},
+  {name:'Attention, random reinitialization',color:'#3569a8',values:attention.map(r=>r.random)},
+  {name:'MLP, original initialization',color:'#bd6c32',values:mlp.map(r=>r.original)},
+  {name:'MLP, random reinitialization',color:'#22796d',values:mlp.map(r=>r.random)}
+ ]});
+}
+function renderTrendChart(id,{min,max,ticks,series}){
+ const W=640,H=266,L=44,R=15,T=14,B=38,plotW=W-L-R,plotH=H-T-B;
+ const x=i=>L+i*(plotW/3),y=v=>T+(max-v)/(max-min)*plotH;
+ let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Accuracy by pruning level">`;
+ ticks.forEach(t=>{const yy=y(t);svg+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#e8edf1"/><text x="${L-8}" y="${yy+3.5}" font-size="10" fill="#77818e" text-anchor="end">${t}%</text>`;});
+ const ratesLabel=[20,40,60,80];
+ ratesLabel.forEach((r,i)=>{const xx=x(i);svg+=`<line x1="${xx}" x2="${xx}" y1="${T}" y2="${H-B}" stroke="#f0f2f4"/><text x="${xx}" y="${H-15}" font-size="10" fill="#77818e" text-anchor="middle">${r}%</text>`;});
+ series.forEach(s=>{
+  const pts=s.values.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  svg+=`<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>`;
+  s.values.forEach((v,i)=>{svg+=`<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${s.color}" stroke="#fff" stroke-width="1"><title>${esc(s.name)} at ${[20,40,60,80][i]}% pruning: ${fmt(v)}% accuracy</title></circle>`;});
+ });
+ svg+='</svg>';
+ $(id).innerHTML=svg;
+}
+
+function buildCleanHeatmap(){
+ const rates=[20,40,60,80];let html='<div class="heat-row"><div></div>'+rates.map(r=>`<div class="heat-colhead">${r}%</div>`).join('')+'</div>';
+ for(const loc of ['Attention','MLP']){html+=`<div class="heat-row"><div class="heat-rowhead">${loc}</div>`+rates.map(rate=>{const r=D.clean.find(x=>x.location===loc&&x.pruning===rate);return `<div class="heat-cell" style="background:${colorFor(r.pruned)}" title="${loc}, ${rate}% pruning: ${fmt(r.pruned)}% accuracy"><strong>${fmt(r.pruned)}%</strong><span>${r.deltaDensePruned} vs dense</span></div>`}).join('')+'</div>';}
+ $('clean-heatmap').innerHTML=html;
+}
+function buildGapChart(){
+ const rates=[20,40,60,80], rows=rates.map(rate=>{const c=D.compare.find(x=>x.pruning===rate+'%'&&x.condition==='Pruning only');return {rate,delta:parseFloat(c.difference),label:c.difference};});
+ const W=520,H=242,L=53,R=18,T=22,B=40,plotW=W-L-R,plotH=H-T-B,max=45;
+ const x=v=>L+v/max*plotW,y=i=>T+i*46+12;let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Difference in pruning-only accuracy between MLP and attention">`;
+ [0,10,20,30,40].forEach(t=>{const xx=x(t);svg+=`<line x1="${xx}" x2="${xx}" y1="${T-3}" y2="${H-B+4}" stroke="#e7ebef"/><text x="${xx}" y="${H-15}" fill="#75808d" font-size="10" text-anchor="middle">${t} pp</text>`});
+ rows.forEach((r,i)=>{let yy=y(i),xx=x(r.delta);svg+=`<text x="0" y="${yy+4}" font-size="11" fill="#4d5866">${r.rate}% pruning</text><line x1="${x(0)}" x2="${xx}" y1="${yy}" y2="${yy}" stroke="#9aabba" stroke-width="5" stroke-linecap="round"/><circle cx="${xx}" cy="${yy}" r="5" fill="${r.rate===80?'#a84642':'#3569a8'}"><title>MLP minus attention: ${fmt(r.delta)} percentage points at ${r.rate}% pruning</title></circle><text x="${Math.min(xx+10,W-R-35)}" y="${yy+4}" font-size="11" font-weight="700" fill="#34404d">${r.label}</text>`});svg+='</svg>';$('location-gap').innerHTML=svg;
+}
+function buildInitDumbbell(){
+ const rows=D.clean.slice(); const W=1000,H=42+rows.length*35+48,L=195,R=128,T=24,B=34;const x0=80,x1=96,px=v=>L+(v-x0)/(x1-x0)*(W-L-R), py=i=>T+i*35+13;
+ let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Clean accuracy with original and random initialization">`;
+ [80,84,88,92,96].forEach(t=>{let xx=px(t);svg+=`<line x1="${xx}" x2="${xx}" y1="${T-8}" y2="${H-B+2}" stroke="#e8edf1"/><text x="${xx}" y="${H-11}" font-size="10" fill="#77818e" text-anchor="middle">${t}%</text>`});
+ const base=px(94.44);svg+=`<line x1="${base}" x2="${base}" y1="${T-8}" y2="${H-B+2}" stroke="#7c8794" stroke-width="1.5" stroke-dasharray="4 4"><title>Dense baseline, 94.44%</title></line>`;
+ rows.forEach((r,i)=>{const y=py(i),xo=px(r.original),xr=px(r.random);if(i===4)svg+=`<line x1="0" x2="${W}" y1="${y-17}" y2="${y-17}" stroke="#dfe4e9"/>`;const delta=parseFloat(r.deltaInit);const dColor=delta>=0?'#22796d':'#a84642';svg+=`<text x="0" y="${y+4}" font-size="11" fill="#43505e">${r.location} / ${r.pruning}%</text><line x1="${Math.min(xo,xr)}" x2="${Math.max(xo,xr)}" y1="${y}" y2="${y}" stroke="#b7c1ca" stroke-width="2"/><circle cx="${xo}" cy="${y}" r="5" fill="#22796d"><title>${r.location}, ${r.pruning}% pruning, original initialization: ${fmt(r.original)}%</title></circle><circle cx="${xr}" cy="${y}" r="5" fill="#bd6c32"><title>${r.location}, ${r.pruning}% pruning, random reinitialization: ${fmt(r.random)}%</title></circle><text x="${W-R+4}" y="${y+4}" font-size="11" font-weight="700" fill="${dColor}">${r.deltaInit}</text>`});
+ svg+=`<text x="${W-R+4}" y="12" font-size="10" fill="#77818e">Δ Init</text></svg>`;$('init-dumbbell').innerHTML=svg;
+}
+function buildPGDHeatmap(filter='all'){
+ const rows=D.pgd.filter(r=>filter==='all'||category(r)===filter);let html='<div class="robust-table"><div class="robust-header"><div>Condition</div><div>PGD 2/255</div><div>PGD 4/255</div><div>PGD 8/255</div></div>';
+ let prev='';rows.forEach(r=>{const cat=category(r),g=cat==='dense'?'Baseline':cat==='pruned'?'Pruning only':cat==='original'?'Original init.':'Random init.';const start=cat!==prev;prev=cat;html+=`<div class="robust-row ${start?'group-start':''}"><div class="robust-label" title="${esc(r.condition)}">${esc(shortLabel(r.condition))}${start?`<span class="group-tag">${g}</span>`:''}</div>`+['pgd2','pgd4','pgd8'].map(k=>`<div class="robust-cell" style="background:${colorFor(r[k])}" title="${esc(r.condition)}: ${fmt(r[k])}% adversarial accuracy">${fmt(r[k])}</div>`).join('')+'</div>';});html+='</div>';$('pgd-heatmap').innerHTML=html;
+}
+function buildAttackChart(){
+ const rows=D.attack;const W=1020,H=56+rows.length*26+40,L=245,R=22,T=30,B=34,xMax=60;const x=v=>L+v/xMax*(W-L-R),y=i=>T+i*26+8;
+ let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="FGSM and PGD adversarial accuracy comparison at epsilon 8 over 255">`;
+ [0,10,20,30,40,50,60].forEach(t=>{let xx=x(t);svg+=`<line x1="${xx}" x2="${xx}" y1="${T-11}" y2="${H-B+3}" stroke="#e8edf1"/><text x="${xx}" y="${H-12}" font-size="10" fill="#77818e" text-anchor="middle">${t}%</text>`});
+ rows.forEach((r,i)=>{const yy=y(i),xf=x(r.fgsm),xp=x(r.pgd),start=category(r);if(i===1||i===9||i===17)svg+=`<line x1="0" x2="${W}" y1="${yy-14}" y2="${yy-14}" stroke="#dfe4e9"/>`;svg+=`<text x="0" y="${yy+4}" font-size="10.5" fill="#43505e">${esc(shortLabel(r.condition))}</text><line x1="${xp}" x2="${xf}" y1="${yy}" y2="${yy}" stroke="#b7c1ca" stroke-width="1.7"/><circle cx="${xf}" cy="${yy}" r="4" fill="#3569a8"><title>${esc(r.condition)}, FGSM accuracy: ${fmt(r.fgsm)}%</title></circle><circle cx="${xp}" cy="${yy}" r="4" fill="#bd6c32"><title>${esc(r.condition)}, PGD accuracy: ${fmt(r.pgd)}%</title></circle>`});svg+='</svg>';$('attack-dumbbell').innerHTML=svg;
+}
+function makeTable(el,headers,rows,formatter){let html='<thead><tr>'+headers.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';rows.forEach((row,i)=>{html+=`<tr ${i===0&&el==='pgd-table'?'class="dense-row"':''}>`+formatter(row).map((v,j)=>`<td>${v}</td>`).join('')+'</tr>'});$(el).innerHTML=html+'</tbody>';}
+function numCell(n){return fmt(n);}
+makeTable('clean-table',['Location','Pruning','Pruned acc.','Δ Dense','Original init. acc.','Δ Retrain','Δ Dense','Random init. acc.','Δ Retrain','Δ Dense','Δ Init'],D.clean,r=>[esc(r.location),r.pruning+'%',fmt(r.pruned),esc(r.deltaDensePruned),fmt(r.original),esc(r.deltaRetrainOriginal),esc(r.deltaDenseOriginal),fmt(r.random),esc(r.deltaRetrainRandom),esc(r.deltaDenseRandom),`<span class="${parseFloat(r.deltaInit)>=0?'up':'down'}">${esc(r.deltaInit)}</span>`]);
+makeTable('pgd-table',['Condition','Clean acc.','PGD 2/255','PGD 4/255','PGD 8/255','ASR @ 8/255'],D.pgd,r=>[esc(r.condition),fmt(r.clean),fmt(r.pgd2),fmt(r.pgd4),fmt(r.pgd8),fmt(r.asr8)]);
+makeTable('attack-table',['Condition','Clean acc.','FGSM acc.','PGD acc.','FGSM ASR','PGD ASR'],D.attack,r=>[esc(r.condition),fmt(r.clean),fmt(r.fgsm),fmt(r.pgd),fmt(r.fgsmAsr),fmt(r.pgdAsr)]);
+buildTrendCharts();buildCleanHeatmap();buildGapChart();buildInitDumbbell();buildPGDHeatmap();buildAttackChart();
+$('robust-filter').addEventListener('change',e=>buildPGDHeatmap(e.target.value));
+</script>
+</body>
+</html>
