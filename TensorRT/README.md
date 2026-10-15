@@ -1,0 +1,3 @@
+## Experimenting with TensorRT for Inference
+
+Converted the trained PyTorch model to ONNX format and used TensorRT to build an FP16 engine for faster inference. Implemented GPU-based inference with TensorRT and PyCUDA. Applied image preprocessing, including resizing, CLAHE enhancement, and normalization. Evaluated the engine on multiple test images after warm-up runs. Measured mean, median, 95th-percentile, and 99th-percentile latency, along with throughput, to assess inference speed and deployment performance.
