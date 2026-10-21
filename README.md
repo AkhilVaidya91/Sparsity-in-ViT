@@ -1,5 +1,7 @@
 # Sparsity in Vision Transformers
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23546069.svg)](https://doi.org/10.5281/zenodo.23546069)
+
 This project studies unstructured pruning in a Vision Transformer (ViT) for
 traffic sign recognition. It compares a dense model with models pruned in the
 attention and multilayer perceptron (MLP) blocks.
@@ -15,7 +17,7 @@ The experiments measure:
 - FGSM and PGD adversarial robustness.
 - Inference time and model sparsity.
 
-View the published study results at
+View the project results at
 [akhilvaidya91.github.io/Sparsity-in-ViT](https://akhilvaidya91.github.io/Sparsity-in-ViT/).
 
 ## Experiment overview
