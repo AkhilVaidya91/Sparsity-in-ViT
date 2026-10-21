@@ -6,7 +6,7 @@ This project studies unstructured pruning in a Vision Transformer (ViT) for
 traffic sign recognition. It compares a dense model with models pruned in the
 attention and multilayer perceptron (MLP) blocks.
 
-![Overview](assets/poster.png)
+![Overview](assets/image.png)
 
 The experiments measure:
 
