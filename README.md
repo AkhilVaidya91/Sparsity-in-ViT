@@ -44,11 +44,15 @@ initialization.
 
 ![Immediate and retrained accuracy](assets/overview.png)
 
+![Radar chart of results](assets/robustness_fingerprint_at_80.png)
+
 The initialization comparison shows the clean accuracy for attention and MLP
 pruning at several sparsity levels. Original initialization performs better in
 most comparisons in the supplied results.
 
 ![Original and random initialization comparison](assets/retraining.png)
+
+![Robustness terrain](assets/robustness_terrain.png)
 
 ## Requirements
 
